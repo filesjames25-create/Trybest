@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Home - C O P{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="hero-section">
+        <h1 class="hero-title">S P H</h1>
+        <p class="hero-description">
+            Comprehensive step-by-step guides for cybersecurity labs covering encryption, 
+            network security, forensics, log management, and SIEM tools.
+        </p>
+    </div>
+
+    <div class="practicals-grid">
+        {% for practical in practicals %}
+        <div class="practical-card" data-category="{{ practical['category'] }}">
+            <div class="card-header">
+                <span class="category-badge">{{ practical['category'] }}</span>
+                <span class="practical-number">#{{ practical['id'] }}</span>
+            </div>
+            <h2 class="card-title">{{ practical['title'] }}</h2>
+            <a href="/practical/{{ practical['id'] }}" class="card-link">
+                <span>View Practical</span>
+                <span class="arrow">→</span>
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="categories-legend">
+        <h3>Categories</h3>
+        <div class="legend-items">
+            <span class="legend-item" data-cat="Cryptography">Cryptography</span>
+            <span class="legend-item" data-cat="Network Security">Network Security</span>
+            <span class="legend-item" data-cat="Forensics">Forensics</span>
+            <span class="legend-item" data-cat="Network Analysis">Network Analysis</span>
+            <span class="legend-item" data-cat="Log Management">Log Management</span>
+            <span class="legend-item" data-cat="SIEM">SIEM</span>
+            <span class="legend-item" data-cat="Log Analytics">Log Analytics</span>
+            <span class="legend-item" data-cat="Log Processing">Log Processing</span>
+        </div>
+    </div>
+</div>
+{% endblock %}

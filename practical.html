@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}{{ practical['title'] }} - C O P{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="breadcrumb">
+        <a href="/">← Back to Practicals</a>
+    </div>
+
+    <div class="practical-header">
+        <div class="header-meta">
+            <span class="category-badge">{{ practical['category'] }}</span>
+            <span class="practical-id">Practical #{{ practical['id'] }}</span>
+        </div>
+        <h1 class="practical-title">{{ practical['title'] }}</h1>
+    </div>
+
+    <div class="practical-content">
+        <!-- Theory Section -->
+        <section class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-icon">📚</span>
+                    Theory & Background
+                </h2>
+            </div>
+            <div class="section-body theory-content">
+                {{ practical['theory']|replace('\n\n', '</p><p>')|replace('\n', '<br>')|safe }}
+            </div>
+        </section>
+
+        <!-- Steps Section -->
+        <section class="content-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-icon">⚙️</span>
+                    Step-by-Step Instructions
+                </h2>
+                <button class="copy-btn" onclick="copySteps()">
+                    <span class="copy-icon">📋</span>
+                    <span class="copy-text">Copy All Steps</span>
+                </button>
+            </div>
+            <div class="section-body">
+                <pre class="steps-content" id="steps-content">{{ practical['steps'] }}</pre>
+                <div class="copy-notification" id="copy-notification">
+                    ✓ Steps copied to clipboard!
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Navigation -->
+    <div class="practical-navigation">
+        {% if practical['id'] > 1 %}
+        <a href="/practical/{{ practical['id'] - 1 }}" class="nav-btn nav-prev">
+            <span class="nav-arrow">←</span>
+            <span class="nav-label">Previous</span>
+        </a>
+        {% else %}
+        <div class="nav-spacer"></div>
+        {% endif %}
+
+        <a href="/" class="nav-btn nav-home">
+            <span class="nav-label">All Practicals</span>
+        </a>
+
+        {% if practical['id'] < 9 %}
+        <a href="/practical/{{ practical['id'] + 1 }}" class="nav-btn nav-next">
+            <span class="nav-label">Next</span>
+            <span class="nav-arrow">→</span>
+        </a>
+        {% else %}
+        <div class="nav-spacer"></div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function copySteps() {
+    const stepsElement = document.getElementById('steps-content');
+    const notification = document.getElementById('copy-notification');
+    const copyBtn = document.querySelector('.copy-btn');
+    
+    // Create a temporary textarea
+    const textarea = document.createElement('textarea');
+    textarea.value = stepsElement.textContent;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    
+    // Select and copy
+    textarea.select();
+    textarea.setSelectionRange(0, 99999); // For mobile devices
+    
+    try {
+        document.execCommand('copy');
+        
+        // Show notification
+        notification.classList.add('show');
+        copyBtn.classList.add('copied');
+        
+        // Hide notification after 2 seconds
+        setTimeout(() => {
+            notification.classList.remove('show');
+            copyBtn.classList.remove('copied');
+        }, 2000);
+    } catch (err) {
+        console.error('Failed to copy:', err);
+    }
+    
+    // Remove temporary textarea
+    document.body.removeChild(textarea);
+}
+</script>
+{% endblock %}
