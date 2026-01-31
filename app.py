@@ -1,6 +1,11 @@
 from flask import Flask, render_template, jsonify, send_file, send_from_directory
 import sqlite3
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -18,25 +23,26 @@ def get_db():
 
 def init_db():
     """Initialize the database with practicals data"""
-    if os.path.exists(DATABASE):
-        os.remove(DATABASE)
-    
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Create practicals table
-    cursor.execute('''
-        CREATE TABLE practicals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            category TEXT NOT NULL,
-            theory TEXT NOT NULL,
-            steps TEXT NOT NULL
-        )
-    ''')
-    
-    # Insert all practicals
-    practicals_data = [
+    # Only initialize if database doesn't exist
+    if not os.path.exists(DATABASE):
+        logger.info("Initializing database...")
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            
+            # Create practicals table
+            cursor.execute('''
+                CREATE TABLE practicals (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    theory TEXT NOT NULL,
+                    steps TEXT NOT NULL
+                )
+            ''')
+            
+            # Insert all practicals
+            practicals_data = [
         {
             'title': 'Encrypting and Decrypting Data Using OpenSSL',
             'category': 'Cryptography',
@@ -866,38 +872,78 @@ timedatectl list-timezones'''
         }
     ]
     
-    for practical in practicals_data:
-        cursor.execute('''
-            INSERT INTO practicals (title, category, theory, steps)
-            VALUES (?, ?, ?, ?)
-        ''', (practical['title'], practical['category'], practical['theory'], practical['steps']))
-    
-    conn.commit()
-    conn.close()
+            for practical in practicals_data:
+                cursor.execute('''
+                    INSERT INTO practicals (title, category, theory, steps)
+                    VALUES (?, ?, ?, ?)
+                ''', (practical['title'], practical['category'], practical['theory'], practical['steps']))
+            
+            conn.commit()
+            conn.close()
+            logger.info("Database initialized successfully!")
+        except Exception as e:
+            logger.error(f"Error initializing database: {e}")
+            raise
+    else:
+        logger.info("Database already exists, skipping initialization.")
+
+@app.route('/health')
+def health():
+    """Health check endpoint for monitoring"""
+    try:
+        # Check database
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('SELECT COUNT(*) FROM practicals')
+        count = cursor.fetchone()[0]
+        conn.close()
+        
+        # Check downloads directory
+        downloads_exist = os.path.exists(DOWNLOADS_DIR)
+        docx_exists = os.path.exists(os.path.join(DOWNLOADS_DIR, 'SOPR.docx'))
+        
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'practicals_count': count,
+            'downloads_directory': downloads_exist,
+            'docx_available': docx_exists
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
 
 @app.route('/')
 def index():
     """Home page with list of practicals"""
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, title, category FROM practicals ORDER BY id')
-    practicals = cursor.fetchall()
-    conn.close()
-    return render_template('index.html', practicals=practicals)
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, title, category FROM practicals ORDER BY id')
+        practicals = cursor.fetchall()
+        conn.close()
+        return render_template('index.html', practicals=practicals)
+    except Exception as e:
+        return f"Error loading practicals: {str(e)}<br>Please check logs.", 500
 
 @app.route('/practical/<int:practical_id>')
 def practical(practical_id):
     """Individual practical page"""
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM practicals WHERE id = ?', (practical_id,))
-    practical = cursor.fetchone()
-    conn.close()
-    
-    if practical is None:
-        return "Practical not found", 404
-    
-    return render_template('practical.html', practical=practical)
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM practicals WHERE id = ?', (practical_id,))
+        practical = cursor.fetchone()
+        conn.close()
+        
+        if practical is None:
+            return "Practical not found", 404
+        
+        return render_template('practical.html', practical=practical)
+    except Exception as e:
+        return f"Error loading practical: {str(e)}", 500
 
 @app.route('/api/practicals')
 def get_all_practicals():
@@ -940,7 +986,7 @@ def download_sopr_docx():
         return send_file(
             file_path,
             as_attachment=True,
-            download_name='PVRdataset.docx',
+            download_name='Security_Operations_Practicals.docx',
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
     except Exception as e:
@@ -951,7 +997,7 @@ def download_sopr_pdf():
     """Download SOPR1.pdf file from static/downloads"""
     try:
         # Check for PDF files in downloads directory
-        pdf_names = ['SOPR1.pdf', 'SOPR.pdf', 'Kraggle.pdf']
+        pdf_names = ['SOPR1.pdf', 'SOPR.pdf', 'Security_Operations_Practicals.pdf']
         
         for pdf_name in pdf_names:
             pdf_path = os.path.join(DOWNLOADS_DIR, pdf_name)
@@ -959,7 +1005,7 @@ def download_sopr_pdf():
                 return send_file(
                     pdf_path,
                     as_attachment=True,
-                    download_name='Kraggle.pdf',
+                    download_name='Security_Operations_Practicals.pdf',
                     mimetype='application/pdf'
                 )
         
@@ -1005,3 +1051,6 @@ def debug_files():
 if __name__ == '__main__':
     init_db()
     app.run(debug=True, host='0.0.0.0', port=5000)
+else:
+    # For production (Render, Heroku, etc.)
+    init_db()
