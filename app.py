@@ -986,7 +986,7 @@ def download_sopr_docx():
         return send_file(
             file_path,
             as_attachment=True,
-            download_name='Security_Operations_Practicals.docx',
+            download_name='Skraggle.docx',
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )
     except Exception as e:
@@ -1005,7 +1005,7 @@ def download_sopr_pdf():
                 return send_file(
                     pdf_path,
                     as_attachment=True,
-                    download_name='Security_Operations_Practicals.pdf',
+                    download_name='Spkj.pdf',
                     mimetype='application/pdf'
                 )
         
